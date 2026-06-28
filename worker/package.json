@@ -1,0 +1,16 @@
+{
+  "name": "worker",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev src/index.ts",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply pusher-db"
+  },
+  "dependencies": {
+    "hono": "^4.4.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.57.0",
+    "typescript": "^5.5.3"
+  }
+}

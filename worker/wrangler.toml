@@ -1,0 +1,11 @@
+name = "pusher-api"
+main = "src/index.ts"
+compatibility_date = "2024-06-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pusher-db"
+database_id = "79945bcb-448e-463b-8125-842baa659207"
+
+[[migrations]]
+tag = "v1"

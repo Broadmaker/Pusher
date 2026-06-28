@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Push Test — Pusher</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f1f5f9; color: #1e293b; display: flex; align-items: center;
+      justify-content: center; min-height: 100vh; padding: 16px;
+    }
+    .card {
+      background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 32px; max-width: 400px; width: 100%;
+    }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    p.sub { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+    input {
+      width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px;
+      font-size: 15px; outline: none; transition: border .2s;
+    }
+    input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    button {
+      width: 100%; margin-top: 20px; padding: 12px; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity .2s;
+    }
+    button.primary { background: #6366f1; color: white; }
+    button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.primary:hover:not(:disabled) { opacity: 0.9; }
+    .status { margin-top: 20px; padding: 12px 16px; border-radius: 10px; font-size: 14px; display: none; }
+    .status.success { display: block; background: #d1fae5; color: #065f46; }
+    .status.error { display: block; background: #fee2e2; color: #991b1b; }
+    .status.info { display: block; background: #dbeafe; color: #1e40af; }
+    .step { font-size: 13px; color: #64748b; margin-top: 16px; }
+    .step span { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center;
+      border-radius: 50%; background: #e2e8f0; font-size: 11px; font-weight: 700; margin-right: 6px; color: #475569; }
+    .step.done span { background: #6366f1; color: white; }
+    .step.done { color: #1e293b; }
+    .step.fail span { background: #ef4444; color: white; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Pusher</h1>
+    <p class="sub">Register this device to receive test notifications</p>
+
+    <label for="apiKey">API Key</label>
+    <input id="apiKey" type="text" placeholder="pk_live_..." autocomplete="off" />
+
+    <button class="primary" id="registerBtn" onclick="start()">Register Device</button>
+
+    <div id="steps">
+      <div class="step" id="s-permission"><span>1</span> Notification permission</div>
+      <div class="step" id="s-sw"><span>2</span> Service worker</div>
+      <div class="step" id="s-subscribe"><span>3</span> Push subscription</div>
+      <div class="step" id="s-register"><span>4</span> Register with server</div>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const API_URL = 'https://pusher-api.sanigkram24.workers.dev/api'
+    const VAPID_KEY = 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEzscsvt3vqOZlrda_qn_yPVevi85qr2na6RYxIX1duBaFKLywHB9h_trrvq9r6GIwqZtUTmSUTT6oMug_sa9NwA'
+
+    const btn = document.getElementById('registerBtn')
+    const statusEl = document.getElementById('status')
+
+    function step(id) { return document.getElementById(id) }
+    function markStep(id, done) {
+      step(id).className = 'step ' + (done === true ? 'done' : done === false ? 'fail' : '')
+    }
+    function setStatus(msg, type) {
+      statusEl.className = 'status ' + type
+      statusEl.textContent = msg
+    }
+
+    async function start() {
+      const apiKey = document.getElementById('apiKey').value.trim()
+      if (!apiKey) { setStatus('Please enter your API key', 'error'); return }
+      btn.disabled = true
+      setStatus('Starting...', 'info')
+
+      // 1. Check support
+      if (!('Notification' in window)) { setStatus('Push not supported on this browser', 'error'); btn.disabled = false; return }
+
+      // 2. Permission
+      markStep('s-permission', null)
+      try {
+        let perm = Notification.permission
+        if (perm === 'denied') { setStatus('Notifications blocked. Unblock in browser settings.', 'error'); markStep('s-permission', false); btn.disabled = false; return }
+        if (perm !== 'granted') {
+          perm = await Notification.requestPermission()
+        }
+        if (perm !== 'granted') { setStatus('Permission denied', 'error'); markStep('s-permission', false); btn.disabled = false; return }
+        markStep('s-permission', true)
+      } catch (e) { setStatus('Error requesting permission: ' + e.message, 'error'); markStep('s-permission', false); btn.disabled = false; return }
+
+      // 3. Service Worker
+      markStep('s-sw', null)
+      if (!('serviceWorker' in navigator)) { setStatus('Service Workers not supported', 'error'); markStep('s-sw', false); btn.disabled = false; return }
+      let reg
+      try {
+        reg = await navigator.serviceWorker.register('/sw.js')
+        await navigator.serviceWorker.ready
+        markStep('s-sw', true)
+      } catch (e) { setStatus('Service Worker registration failed: ' + e.message, 'error'); markStep('s-sw', false); btn.disabled = false; return }
+
+      // 4. Push Subscribe
+      markStep('s-subscribe', null)
+      if (!('PushManager' in window)) { setStatus('PushManager not available', 'error'); markStep('s-subscribe', false); btn.disabled = false; return }
+      let subscription
+      try {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_KEY),
+        })
+        markStep('s-subscribe', true)
+      } catch (e) {
+        setStatus('Push subscribe failed: ' + e.message + '. Try again or use a mock device.', 'error')
+        markStep('s-subscribe', false)
+        btn.disabled = false
+        return
+      }
+
+      // 5. Register with server
+      markStep('s-register', null)
+      try {
+        const token = JSON.stringify(subscription.toJSON())
+        const res = await fetch(API_URL + '/devices/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey, token, platform: 'web' }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Server error')
+        markStep('s-register', true)
+        setStatus('Device registered! Send a notification from the dashboard to test it.', 'success')
+      } catch (e) {
+        setStatus('Server registration failed: ' + e.message, 'error')
+        markStep('s-register', false)
+      }
+
+      btn.disabled = false
+    }
+
+    function urlBase64ToUint8Array(b64) {
+      const padding = '='.repeat((4 - (b64.length % 4)) % 4)
+      const base64 = (b64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+      const raw = atob(base64)
+      return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
+    }
+  </script>
+</body>
+</html>
