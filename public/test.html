@@ -30,16 +30,23 @@
     button.primary { background: #6366f1; color: white; }
     button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
     button.primary:hover:not(:disabled) { opacity: 0.9; }
+    button.secondary { background: #64748b; color: white; margin-top: 8px; }
+    button.success { background: #059669; color: white; }
     .status { margin-top: 20px; padding: 12px 16px; border-radius: 10px; font-size: 14px; display: none; }
     .status.success { display: block; background: #d1fae5; color: #065f46; }
     .status.error { display: block; background: #fee2e2; color: #991b1b; }
     .status.info { display: block; background: #dbeafe; color: #1e40af; }
-    .step { font-size: 13px; color: #64748b; margin-top: 16px; }
-    .step span { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center;
-      border-radius: 50%; background: #e2e8f0; font-size: 11px; font-weight: 700; margin-right: 6px; color: #475569; }
-    .step.done span { background: #6366f1; color: white; }
-    .step.done { color: #1e293b; }
-    .step.fail span { background: #ef4444; color: white; }
+    .status.warning { display: block; background: #fef3c7; color: #92400e; }
+    .step { font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-top: 10px; border: 1px solid #e2e8f0; background: #f8fafc; }
+    .step .num { display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center;
+      border-radius: 50%; background: #e2e8f0; font-size: 11px; font-weight: 700; margin-right: 8px; color: #475569; flex-shrink: 0; }
+    .step.done { background: #ecfdf5; border-color: #a7f3d0; }
+    .step.done .num { background: #059669; color: white; }
+    .step.fail { background: #fef2f2; border-color: #fecaca; }
+    .step.fail .num { background: #ef4444; color: white; }
+    .step-body { display: flex; align-items: flex-start; }
+    .step-label { padding-top: 2px; }
+    .step .detail { font-size: 12px; color: #64748b; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -48,17 +55,31 @@
     <p class="sub">Register this device to receive test notifications</p>
 
     <label for="apiKey">API Key</label>
-    <input id="apiKey" type="text" placeholder="pk_live_..." autocomplete="off" />
+    <input id="apiKey" type="text" placeholder="pk_live_..." autocomplete="off" value="pk_live_a1b2c3d4e5f6" />
 
     <button class="primary" id="registerBtn" onclick="start()">Register Device</button>
 
-    <button class="primary" id="mockBtn" onclick="registerMock()" style="display:none;background:#64748b;margin-top:8px;">Use Mock Device Instead</button>
-
     <div id="steps">
-      <div class="step" id="s-permission"><span>1</span> Notification permission</div>
-      <div class="step" id="s-sw"><span>2</span> Service worker</div>
-      <div class="step" id="s-subscribe"><span>3</span> Push subscription</div>
-      <div class="step" id="s-register"><span>4</span> Register with server</div>
+      <div class="step" id="s-permission"><div class="step-body"><span class="num">1</span><div class="step-label">Notification permission</div></div></div>
+      <div class="step" id="s-sw"><div class="step-body"><span class="num">2</span><div class="step-label">Service worker</div></div></div>
+      <div class="step" id="s-subscribe"><div class="step-body"><span class="num">3</span><div class="step-label">Push subscription</div></div></div>
+      <div class="step" id="s-register"><div class="step-body"><span class="num">4</span><div class="step-label">Register with server</div></div></div>
+    </div>
+
+    <div id="permissionHelp" style="display:none;margin-top:16px;padding:14px;background:#fef3c7;border-radius:10px;border:1px solid #fcd34d;">
+      <p style="font-size:14px;font-weight:600;color:#92400e;margin-bottom:8px;">Enable notifications</p>
+      <ol style="font-size:13px;color:#78350f;padding-left:18px;">
+        <li style="margin-bottom:4px;">Tap the <b>🔒 lock icon</b> in Chrome's address bar</li>
+        <li style="margin-bottom:4px;">Tap <b>Site Settings</b></li>
+        <li style="margin-bottom:4px;">Set <b>Notifications</b> → <b>Allow</b></li>
+        <li style="margin-bottom:4px;"><b>Reload</b> this page and tap <b>Register Device</b> again</li>
+      </ol>
+    </div>
+
+    <div id="mockSection" style="display:none;margin-top:16px;padding:16px;background:#f1f5f9;border-radius:10px;border:1px dashed #94a3b8;">
+      <p style="font-size:14px;font-weight:600;color:#334155;margin-bottom:4px;">Real push not available</p>
+      <p style="font-size:12px;color:#64748b;margin-bottom:12px;">Notifications will appear in the dashboard history but won't arrive on this device as a popup.</p>
+      <button class="secondary" id="mockBtn" onclick="registerMock()">Register as Mock Device</button>
     </div>
 
     <div class="status" id="status"></div>
@@ -70,6 +91,8 @@
 
     const btn = document.getElementById('registerBtn')
     const mockBtn = document.getElementById('mockBtn')
+    const mockSection = document.getElementById('mockSection')
+    const permHelp = document.getElementById('permissionHelp')
     const statusEl = document.getElementById('status')
     let savedApiKey = ''
 
@@ -98,7 +121,7 @@
         if (!res.ok) throw new Error(data.error || 'Server error')
         markStep('s-register', true)
         markStep('s-subscribe', true)
-        setStatus('Mock device registered! Send a notification from the dashboard to test.', 'success')
+        setStatus('Mock device registered! Go to Dashboard → Apps → Send Notification to test.', 'success')
       } catch (e) {
         setStatus('Mock registration failed: ' + e.message, 'error')
       }
@@ -110,8 +133,11 @@
       if (!apiKey) { setStatus('Please enter your API key', 'error'); return }
       savedApiKey = apiKey
       btn.disabled = true
-      mockBtn.style.display = 'none'
+      mockSection.style.display = 'none'
+      permHelp.style.display = 'none'
       setStatus('Starting...', 'info')
+
+      document.querySelectorAll('.step').forEach(s => s.className = 'step')
 
       // 1. Check support
       if (!('Notification' in window)) { setStatus('Push not supported on this browser', 'error'); btn.disabled = false; return }
@@ -120,13 +146,33 @@
       markStep('s-permission', null)
       try {
         let perm = Notification.permission
-        if (perm === 'denied') { setStatus('Notifications blocked. Unblock in browser settings.', 'error'); markStep('s-permission', false); btn.disabled = false; return }
+        if (perm === 'denied') {
+          permHelp.style.display = 'block'
+          setStatus('Notifications are blocked. Follow the steps above, then reload and try again.', 'warning')
+          markStep('s-permission', false)
+          showMockFallback(apiKey)
+          btn.disabled = false
+          return
+        }
         if (perm !== 'granted') {
           perm = await Notification.requestPermission()
         }
-        if (perm !== 'granted') { setStatus('Permission denied', 'error'); markStep('s-permission', false); btn.disabled = false; return }
+        if (perm !== 'granted') {
+          permHelp.style.display = 'block'
+          setStatus('Permission was not granted. Follow the steps above or use mock device.', 'warning')
+          markStep('s-permission', false)
+          showMockFallback(apiKey)
+          btn.disabled = false
+          return
+        }
         markStep('s-permission', true)
-      } catch (e) { setStatus('Error requesting permission: ' + e.message, 'error'); markStep('s-permission', false); btn.disabled = false; return }
+      } catch (e) {
+        setStatus('Error requesting permission: ' + e.message, 'error')
+        markStep('s-permission', false)
+        showMockFallback(apiKey)
+        btn.disabled = false
+        return
+      }
 
       // 3. Service Worker
       markStep('s-sw', null)
@@ -136,11 +182,23 @@
         reg = await navigator.serviceWorker.register('/sw.js')
         await navigator.serviceWorker.ready
         markStep('s-sw', true)
-      } catch (e) { setStatus('Service Worker registration failed: ' + e.message, 'error'); markStep('s-sw', false); btn.disabled = false; return }
+      } catch (e) {
+        setStatus('Service Worker registration failed: ' + e.message, 'error')
+        markStep('s-sw', false)
+        showMockFallback(apiKey)
+        btn.disabled = false
+        return
+      }
 
       // 4. Push Subscribe
       markStep('s-subscribe', null)
-      if (!('PushManager' in window)) { setStatus('PushManager not available', 'error'); markStep('s-subscribe', false); btn.disabled = false; return }
+      if (!('PushManager' in window)) {
+        setStatus('PushManager not available', 'error')
+        markStep('s-subscribe', false)
+        showMockFallback(apiKey)
+        btn.disabled = false
+        return
+      }
       let subscription
       try {
         subscription = await reg.pushManager.subscribe({
@@ -149,10 +207,9 @@
         })
         markStep('s-subscribe', true)
       } catch (e) {
-        setStatus('Push subscribe failed: ' + e.message + '. Click "Use Mock Device" below to register without real push.', 'error')
+        setStatus('Push subscribe failed: ' + e.message, 'error')
         markStep('s-subscribe', false)
-        savedApiKey = apiKey
-        mockBtn.style.display = 'block'
+        showMockFallback(apiKey)
         btn.disabled = false
         return
       }
@@ -175,8 +232,12 @@
         markStep('s-register', false)
       }
 
-      mockBtn.style.display = 'none'
       btn.disabled = false
+    }
+
+    function showMockFallback(apiKey) {
+      savedApiKey = apiKey
+      mockSection.style.display = 'block'
     }
 
     function urlBase64ToUint8Array(b64) {
