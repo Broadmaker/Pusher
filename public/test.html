@@ -52,6 +52,8 @@
 
     <button class="primary" id="registerBtn" onclick="start()">Register Device</button>
 
+    <button class="primary" id="mockBtn" onclick="registerMock()" style="display:none;background:#64748b;margin-top:8px;">Use Mock Device Instead</button>
+
     <div id="steps">
       <div class="step" id="s-permission"><span>1</span> Notification permission</div>
       <div class="step" id="s-sw"><span>2</span> Service worker</div>
@@ -64,10 +66,12 @@
 
   <script>
     const API_URL = 'https://pusher-api.sanigkram24.workers.dev/api'
-    const VAPID_KEY = 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEzscsvt3vqOZlrda_qn_yPVevi85qr2na6RYxIX1duBaFKLywHB9h_trrvq9r6GIwqZtUTmSUTT6oMug_sa9NwA'
+    const VAPID_KEY = 'BHcX3UCvOs44ZT3BAM4kcamV1nMrGL5Iardvbe9SydQEwzo8jjsIZ_m6cdZkjdyYuZx4B9sKtzcmdaZH0LLV7do'
 
     const btn = document.getElementById('registerBtn')
+    const mockBtn = document.getElementById('mockBtn')
     const statusEl = document.getElementById('status')
+    let savedApiKey = ''
 
     function step(id) { return document.getElementById(id) }
     function markStep(id, done) {
@@ -78,10 +82,35 @@
       statusEl.textContent = msg
     }
 
+    async function registerMock() {
+      const apiKey = savedApiKey || document.getElementById('apiKey').value.trim()
+      if (!apiKey) { setStatus('Please enter your API key', 'error'); return }
+      mockBtn.disabled = true
+      setStatus('Registering mock device...', 'info')
+      const token = 'mock_web_' + crypto.randomUUID().slice(0, 12)
+      try {
+        const res = await fetch(API_URL + '/devices/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey, token, platform: 'web' }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Server error')
+        markStep('s-register', true)
+        markStep('s-subscribe', true)
+        setStatus('Mock device registered! Send a notification from the dashboard to test.', 'success')
+      } catch (e) {
+        setStatus('Mock registration failed: ' + e.message, 'error')
+      }
+      mockBtn.disabled = false
+    }
+
     async function start() {
       const apiKey = document.getElementById('apiKey').value.trim()
       if (!apiKey) { setStatus('Please enter your API key', 'error'); return }
+      savedApiKey = apiKey
       btn.disabled = true
+      mockBtn.style.display = 'none'
       setStatus('Starting...', 'info')
 
       // 1. Check support
@@ -120,8 +149,10 @@
         })
         markStep('s-subscribe', true)
       } catch (e) {
-        setStatus('Push subscribe failed: ' + e.message + '. Try again or use a mock device.', 'error')
+        setStatus('Push subscribe failed: ' + e.message + '. Click "Use Mock Device" below to register without real push.', 'error')
         markStep('s-subscribe', false)
+        savedApiKey = apiKey
+        mockBtn.style.display = 'block'
         btn.disabled = false
         return
       }
@@ -144,6 +175,7 @@
         markStep('s-register', false)
       }
 
+      mockBtn.style.display = 'none'
       btn.disabled = false
     }
 
