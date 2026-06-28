@@ -63,24 +63,28 @@ export function ApiProvider({ children }: { children: ReactNode }) {
       }))
       setApps(fetchedApps)
 
-      // Fetch devices and notifications per app
+      // Fetch devices, notifications, and templates per app
       return Promise.all(
         fetchedApps.map(app =>
           Promise.all([
             api.listDevices(app.id).then(r => ({ appId: app.id, devices: r.devices })),
             api.listNotifications(app.id).then(r => ({ appId: app.id, notifications: r.notifications })),
+            api.listTemplates(app.id).then(r => ({ appId: app.id, templates: r.templates })),
           ])
         )
       )
     }).then(results => {
       const devMap: Record<string, Device[]> = {}
       const notifMap: Record<string, Notification[]> = {}
-      for (const [devRes, notifRes] of results) {
+      const tmplMap: Record<string, Template[]> = {}
+      for (const [devRes, notifRes, tmplRes] of results) {
         devMap[devRes.appId] = devRes.devices
         notifMap[notifRes.appId] = notifRes.notifications
+        tmplMap[tmplRes.appId] = tmplRes.templates
       }
       setDevices(devMap)
       setNotifications(notifMap)
+      setTemplates(tmplMap)
     }).finally(() => setLoading(false))
   }, [session])
 
@@ -163,12 +167,13 @@ export function ApiProvider({ children }: { children: ReactNode }) {
     setNotifications(prev => ({ ...prev, [appId]: [notification, ...(prev[appId] || [])] }))
   }, [apps])
 
-  const addTemplate = useCallback((appId: string, name: string, title: string, body: string) => {
-    const t: Template = { id: 't' + Date.now(), name, title, body }
-    setTemplates(prev => ({ ...prev, [appId]: [...(prev[appId] || []), t] }))
+  const addTemplate = useCallback(async (appId: string, name: string, title: string, body: string) => {
+    const res = await api.createTemplate(appId, name, title, body)
+    setTemplates(prev => ({ ...prev, [appId]: [...(prev[appId] || []), res.template] }))
   }, [])
 
-  const deleteTemplate = useCallback((appId: string, templateId: string) => {
+  const deleteTemplate = useCallback(async (appId: string, templateId: string) => {
+    await api.deleteTemplate(appId, templateId)
     setTemplates(prev => ({ ...prev, [appId]: (prev[appId] || []).filter(t => t.id !== templateId) }))
   }, [])
 

@@ -19,18 +19,30 @@ router.post('/', async (c) => {
       devices.map(d => sendPush(d.token, title.trim(), body || '', c.env))
     )
 
-    const sent = results.filter(r => r.status === 'fulfilled').length
-    const failed = results.filter(r => r.status === 'rejected').length
+    const sent = results.filter(r => r.status === 'fulfilled' && (r as any).value?.success).length
+    const failed = results.filter(r => r.status === 'fulfilled' && !(r as any).value?.success).length
+    const details = results
+      .filter(r => r.status === 'fulfilled')
+      .map(r => ({ status: (r as any).value?.status, error: (r as any).value?.error || null }))
+      .filter(r => !r.status || r.status >= 400)
+      .slice(0, 5)
 
     return c.json({
       notification,
       sent,
       failed,
       totalDevices: devices.length,
+      details,
     }, 201)
   } catch (e: any) {
     return c.json({ error: e.message }, 400)
   }
+})
+
+router.get('/latest', async (c) => {
+  const result: any = await c.env.DB.prepare('SELECT id, app_id, title, body, status, created_at FROM notifications ORDER BY created_at DESC LIMIT 1').first()
+  const n = result ? { id: result.id, appId: result.appId || result.app_id, title: result.title, body: result.body, status: result.status, createdAt: result.createdAt || result.created_at } : null
+  return c.json({ notification: n })
 })
 
 export default router

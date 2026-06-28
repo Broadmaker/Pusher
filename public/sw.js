@@ -1,15 +1,35 @@
+self.addEventListener('install', () => self.skipWaiting())
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim())
+})
+
+self.addEventListener('fetch', (event) => {
+  event.respondWith(fetch(event.request))
+})
+
 self.addEventListener('push', function (event) {
-  const data = event.data ? event.data.json() : { title: 'New notification', body: '' }
-
-  const options = {
-    body: data.body || '',
-    icon: '/icon.png',
-    badge: '/badge.png',
-    vibrate: [200, 100, 200],
-  }
-
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Pusher', options)
+    fetch('https://pusher-api.sanigkram24.workers.dev/api/notify/latest')
+      .then(r => r.json())
+      .then(data => {
+        const n = data.notification
+        self.registration.showNotification(n?.title || 'Pusher', {
+          body: n?.body || '',
+          icon: '/logo-192.png',
+          badge: '/logo-192.png',
+          vibrate: [200, 100, 200],
+          data: { url: '/' },
+        })
+      })
+      .catch(() => {
+        self.registration.showNotification('Pusher', {
+          body: 'Tap to open',
+          icon: '/logo-192.png',
+          badge: '/logo-192.png',
+          vibrate: [200, 100, 200],
+        })
+      })
   )
 })
 

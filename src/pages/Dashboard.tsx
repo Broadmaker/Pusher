@@ -318,7 +318,7 @@ export default function Dashboard() {
           {/* Mobile FAB */}
           <button
             onClick={() => setShowCreate(true)}
-            className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all active:scale-[0.95] flex items-center justify-center z-20"
+            className="sm:hidden fixed bottom-20 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all active:scale-[0.95] flex items-center justify-center z-20"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

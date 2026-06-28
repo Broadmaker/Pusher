@@ -22,13 +22,12 @@ export async function sendPush(token: string, title: string, body: string, env: 
         Authorization: `Bearer ${jwt}`,
         'Crypto-Key': `p256ecdsa=${VAPID_PUBLIC_KEY}`,
         TTL: '86400',
-        'Content-Type': 'application/octet-stream',
       },
-      body: new TextEncoder().encode(JSON.stringify({ title, body })).buffer,
     })
 
-    console.log(`[push] Sent to ${sub.endpoint.slice(0, 50)}... — ${res.status} ${res.statusText}`)
-    return { success: res.ok, token, status: res.status }
+    const errorText = res.ok ? '' : await res.text().catch(() => '')
+    console.log(`[push] Sent to ${sub.endpoint.slice(0, 50)}... — ${res.status} ${res.statusText} ${errorText.slice(0, 200)}`)
+    return { success: res.ok, token, status: res.status, error: errorText.slice(0, 200) }
   } catch (err: any) {
     console.error(`[push] Error:`, err)
     return { success: false, error: err.message }
@@ -51,31 +50,18 @@ async function buildVapidJWT(privateKeyB64: string, aud: string, sub: string): P
   }))
 
   const toSign = new TextEncoder().encode(`${header}.${payload}`)
-  const sigDer = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, toSign)
-  const sigRaw = derSigToRaw(new Uint8Array(sigDer))
+  const sigBuf = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, toSign)
+  const sig = new Uint8Array(sigBuf)
 
-  return `${header}.${payload}.${b64url(sigRaw)}`
-}
-
-function derSigToRaw(sig: Uint8Array): Uint8Array {
-  let off = 2
-  if (sig[1] & 0x80) off += sig[1] & 0x7f
-
-  if (sig[off++] !== 0x02) throw new Error('bad R tag')
-  let rLen = sig[off++]
-  if (sig[off] === 0) { off++; rLen-- }
-  const r = sig.subarray(off, off + Math.min(rLen, 32))
-  off += rLen
-
-  if (sig[off++] !== 0x02) throw new Error('bad S tag')
-  let sLen = sig[off++]
-  if (sig[off] === 0) { off++; sLen-- }
-  const s = sig.subarray(off, off + Math.min(sLen, 32))
-
+  // Web Crypto returns raw r||s (64 bytes), not DER
   const raw = new Uint8Array(64)
-  raw.set(pad32(r), 0)
-  raw.set(pad32(s), 32)
-  return raw
+  if (sig.length === 64) {
+    raw.set(sig)
+  } else {
+    throw new Error(`Unexpected signature length: ${sig.length}`)
+  }
+
+  return `${header}.${payload}.${b64url(raw)}`
 }
 
 function pad32(buf: Uint8Array): Uint8Array {

@@ -9,3 +9,6 @@ database_id = "79945bcb-448e-463b-8125-842baa659207"
 
 [[migrations]]
 tag = "v1"
+
+[[migrations]]
+tag = "v2"

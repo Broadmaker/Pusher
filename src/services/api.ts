@@ -80,4 +80,15 @@ export const api = {
     }),
   listNotifications: (appId: string) =>
     request<{ notifications: any[] }>(`/apps/${appId}/notifications`),
+
+  // Templates
+  listTemplates: (appId: string) =>
+    request<{ templates: any[] }>(`/templates/${appId}`),
+  createTemplate: (appId: string, name: string, title: string, body: string) =>
+    request<{ template: any }>(`/templates/${appId}`, {
+      method: 'POST',
+      body: JSON.stringify({ name, title, body }),
+    }),
+  deleteTemplate: (appId: string, templateId: string) =>
+    request<{ success: boolean }>(`/templates/${appId}/${templateId}`, { method: 'DELETE' }),
 }

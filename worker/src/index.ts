@@ -5,6 +5,7 @@ import auth from './routes/auth'
 import apps from './routes/apps'
 import devices from './routes/devices'
 import notifications from './routes/notifications'
+import templates from './routes/templates'
 
 type Bindings = {
   DB: D1Database
@@ -29,5 +30,6 @@ app.route('/api/auth', auth)
 app.route('/api/apps', apps)
 app.route('/api/devices', devices)
 app.route('/api/notify', notifications)
+app.route('/api/templates', templates)
 
 export default app

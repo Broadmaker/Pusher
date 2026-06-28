@@ -23,6 +23,15 @@ export interface Device {
   createdAt: string
 }
 
+export interface Template {
+  id: string
+  appId: string
+  name: string
+  title: string
+  body: string
+  createdAt: string
+}
+
 export interface Notification {
   id: string
   appId: string
@@ -37,7 +46,7 @@ export async function createUser(db: D1Database, email: string, password: string
   const existing = await db.prepare('SELECT id FROM users WHERE email = ?').bind(email).first()
   if (existing) throw new Error('Email already registered')
   const id = crypto.randomUUID()
-  const createdAt = new Date().toISOString().slice(0, 10)
+  const createdAt = new Date().toISOString()
   await db.prepare('INSERT INTO users (id, email, password_hash, created_at) VALUES (?, ?, ?, ?)')
     .bind(id, email, password, createdAt).run()
   return { id, email, passwordHash: password, createdAt }
@@ -61,7 +70,7 @@ export async function findUserById(db: D1Database, id: string): Promise<User | u
 export async function createApp(db: D1Database, userId: string, name: string): Promise<App> {
   const id = crypto.randomUUID()
   const apiKey = 'pk_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16)
-  const createdAt = new Date().toISOString().slice(0, 10)
+  const createdAt = new Date().toISOString()
   await db.prepare('INSERT INTO apps (id, user_id, name, api_key, created_at) VALUES (?, ?, ?, ?, ?)')
     .bind(id, userId, name, apiKey, createdAt).run()
   return { id, userId, name, apiKey, createdAt }
@@ -101,13 +110,14 @@ export async function rotateApiKey(db: D1Database, id: string): Promise<string> 
 export async function deleteApp(db: D1Database, id: string): Promise<void> {
   await db.prepare('DELETE FROM devices WHERE app_id = ?').bind(id).run()
   await db.prepare('DELETE FROM notifications WHERE app_id = ?').bind(id).run()
+  await db.prepare('DELETE FROM templates WHERE app_id = ?').bind(id).run()
   await db.prepare('DELETE FROM apps WHERE id = ?').bind(id).run()
 }
 
 // Devices
 export async function registerDevice(db: D1Database, appId: string, token: string, platform: Platform): Promise<Device> {
   const id = crypto.randomUUID()
-  const createdAt = new Date().toISOString().slice(0, 10)
+  const createdAt = new Date().toISOString()
   await db.prepare('INSERT INTO devices (id, app_id, token, platform, created_at) VALUES (?, ?, ?, ?, ?)')
     .bind(id, appId, token, platform, createdAt).run()
   return { id, appId, token, platform, createdAt }
@@ -131,7 +141,7 @@ export async function deleteDeviceById(db: D1Database, id: string): Promise<void
 // Notifications
 export async function createNotification(db: D1Database, appId: string, title: string, body: string): Promise<Notification> {
   const id = crypto.randomUUID()
-  const createdAt = new Date().toISOString().slice(0, 10)
+  const createdAt = new Date().toISOString()
   await db.prepare('INSERT INTO notifications (id, app_id, title, body, status, created_at) VALUES (?, ?, ?, ?, ?, ?)')
     .bind(id, appId, title, body || '(no message)', 'sent', createdAt).run()
   return { id, appId, title, body: body || '(no message)', status: 'sent', createdAt }
@@ -141,6 +151,25 @@ export async function findNotificationsByApp(db: D1Database, appId: string): Pro
   const res = await db.prepare('SELECT id, app_id, title, body, status, created_at FROM notifications WHERE app_id = ? ORDER BY created_at DESC')
     .bind(appId).all()
   return mapNotifications(res.results as any[])
+}
+
+// Templates
+export async function createTemplate(db: D1Database, appId: string, name: string, title: string, body: string): Promise<Template> {
+  const id = crypto.randomUUID()
+  const createdAt = new Date().toISOString()
+  await db.prepare('INSERT INTO templates (id, app_id, name, title, body, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(id, appId, name, title, body || '', createdAt).run()
+  return { id, appId, name, title, body: body || '', createdAt }
+}
+
+export async function findTemplatesByApp(db: D1Database, appId: string): Promise<Template[]> {
+  const res = await db.prepare('SELECT id, app_id, name, title, body, created_at FROM templates WHERE app_id = ? ORDER BY created_at DESC')
+    .bind(appId).all()
+  return (res.results as any[]).map(r => ({ id: r.id, appId: r.appId || r.app_id, name: r.name, title: r.title, body: r.body, createdAt: r.createdAt || r.created_at }))
+}
+
+export async function deleteTemplate(db: D1Database, id: string): Promise<void> {
+  await db.prepare('DELETE FROM templates WHERE id = ?').bind(id).run()
 }
 
 // Seed
