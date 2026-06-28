@@ -128,7 +128,7 @@ export default function AppSettings() {
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Integration</h3>
         <p className="text-sm text-gray-500 mb-4">Add this snippet to your website or app to start registering devices.</p>
         <pre className="bg-slate-900 text-slate-200 p-3 sm:p-4 rounded-xl text-xs overflow-x-auto leading-relaxed">
-{`<script src="https://pusher.dev/sdk.js"></script>
+{`<script src="/sdk.js"></script>
 <script>
   PushSDK.init("${app.apiKey}", {
     vapidPublicKey: "${VAPID_PUBLIC_KEY}"

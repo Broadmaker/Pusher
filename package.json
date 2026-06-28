@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build:sdk": "esbuild ./sdk/web/src/index.ts --bundle --minify --target=es2015 --format=iife --global-name=PushSDK --outfile=./public/sdk.js",
+    "build": "pnpm build:sdk && tsc -b && vite build",
     "preview": "vite preview",
     "dev:worker": "pnpm --filter worker dev",
     "deploy:worker": "pnpm --filter worker deploy",
@@ -20,6 +21,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.5.2",
+    "esbuild": "^0.28.1",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.5.3",
