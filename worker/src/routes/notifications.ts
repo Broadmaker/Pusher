@@ -20,6 +20,17 @@ router.post('/', async (c) => {
 
     const sent = results.filter(r => r.status === 'fulfilled' && (r as any).value?.success).length
     const failed = results.filter(r => r.status === 'fulfilled' && !(r as any).value?.success).length
+
+    // Auto-cleanup expired/unsubscribed devices
+    const cleaned: string[] = []
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i]
+      if (r.status === 'fulfilled' && !r.value?.success && (r.value?.status === 410 || r.value?.status === 404)) {
+        await store.deleteDeviceById(c.env.DB, devices[i].id)
+        cleaned.push(devices[i].id)
+      }
+    }
+
     const details = results
       .filter(r => r.status === 'fulfilled')
       .map(r => ({ status: (r as any).value?.status, error: (r as any).value?.error || null }))
@@ -33,6 +44,7 @@ router.post('/', async (c) => {
       sent,
       failed,
       totalDevices: devices.length,
+      cleanedDevices: cleaned.length,
       details,
     }, 201)
   } catch (e: any) {
