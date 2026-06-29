@@ -2,7 +2,7 @@
   "name": "Pusher",
   "short_name": "Pusher",
   "description": "Send push notifications to your devices",
-  "start_url": "/",
+  "start_url": "/inbox",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#6366f1",

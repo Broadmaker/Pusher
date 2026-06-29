@@ -19,19 +19,18 @@ function formatDate(raw: string): string {
 
 export default function Inbox() {
   const { apiKey: urlKey } = useParams<{ apiKey: string }>()
-  const apiKey = urlKey || localStorage.getItem('pusher_api_key') || ''
+  const [savedKey, setSavedKey] = useState(localStorage.getItem('pusher_api_key') || '')
+  const [inputKey, setInputKey] = useState(urlKey || savedKey || '')
+  const apiKey = urlKey || savedKey
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (!apiKey) {
-      setLoading(false)
-      setError('No API key found. Visit this page from the app that registered your device.')
-      return
-    }
-    fetch(`${API_BASE}/notify/public/${apiKey}`)
-      .then(r => r.json())
+  const load = (key: string) => {
+    setLoading(true)
+    setError('')
+    fetch(`${API_BASE}/notify/public/${key}`)
+      .then(r => { if (!r.ok) throw new Error('Invalid API key'); return r.json() })
       .then(data => {
         setNotifications(data.notifications || [])
         setLoading(false)
@@ -40,7 +39,22 @@ export default function Inbox() {
         setError('Failed to load notifications')
         setLoading(false)
       })
+  }
+
+  useEffect(() => {
+    if (!apiKey) {
+      setLoading(false)
+      return
+    }
+    load(apiKey)
   }, [apiKey])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inputKey.trim()) return
+    localStorage.setItem('pusher_api_key', inputKey.trim())
+    setSavedKey(inputKey.trim())
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -58,7 +72,24 @@ export default function Inbox() {
           </div>
         </div>
 
-        {loading ? (
+        {!apiKey ? (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+            <h2 className="text-sm font-semibold text-gray-700 mb-2">Enter your API Key</h2>
+            <p className="text-xs text-gray-500 mb-4">Paste the API key from the app that registered your device to view your notifications.</p>
+            <form onSubmit={handleSubmit} className="flex gap-3">
+              <input
+                type="text"
+                value={inputKey}
+                onChange={e => setInputKey(e.target.value)}
+                placeholder="pk_live_..."
+                className="flex-1 px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <button type="submit" disabled={!inputKey.trim()} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 text-sm transition-all disabled:opacity-50">
+                View
+              </button>
+            </form>
+          </div>
+        ) : loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
