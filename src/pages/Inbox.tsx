@@ -30,13 +30,20 @@ export default function Inbox() {
     setLoading(true)
     setError('')
     fetch(`${API_BASE}/notify/public/${key}`)
-      .then(r => { if (!r.ok) throw new Error('Invalid API key'); return r.json() })
+      .then(async r => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}))
+          throw new Error(body.error || `Request failed (${r.status})`)
+        }
+        return r.json()
+      })
       .then(data => {
         setNotifications(data.notifications || [])
         setLoading(false)
       })
-      .catch(() => {
-        setError('Failed to load notifications')
+      .catch(e => {
+        console.error('Inbox load error:', e)
+        setError(e.message || 'Failed to load notifications')
         setLoading(false)
       })
   }
