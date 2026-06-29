@@ -15,11 +15,15 @@ router.post('/signup', async (c) => {
 })
 
 router.post('/login', async (c) => {
-  const { email, password } = await c.req.json()
-  if (!email || !password) return c.json({ error: 'Email and password required' }, 400)
-  const user = await store.findUserByEmail(c.env.DB, email)
-  if (!user || user.passwordHash !== password) return c.json({ error: 'Invalid credentials' }, 401)
-  return c.json({ user: { id: user.id, email: user.email, createdAt: user.createdAt } })
+  try {
+    const { email, password } = await c.req.json()
+    if (!email || !password) return c.json({ error: 'Email and password required' }, 400)
+    const user = await store.findUserByEmail(c.env.DB, email)
+    if (!user || user.passwordHash !== password) return c.json({ error: 'Invalid credentials' }, 401)
+    return c.json({ user: { id: user.id, email: user.email, createdAt: user.createdAt } })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
+  }
 })
 
 export default router

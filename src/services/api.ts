@@ -14,7 +14,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       headers,
       signal: controller.signal,
     })
-    const data = await res.json()
+    let data: any
+    try {
+      data = await res.json()
+    } catch {
+      throw new Error(res.status === 500 ? 'Server error — please try again' : `Request failed (${res.status})`)
+    }
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`)
     return data
   } catch (err: any) {
