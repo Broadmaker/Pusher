@@ -29,7 +29,9 @@ export default function Inbox() {
   const load = (key: string) => {
     setLoading(true)
     setError('')
-    fetch(`${API_BASE}/notify/public/${key}`)
+    const url = `${API_BASE}/notify/public/${key}`
+    console.log('Inbox fetch:', url)
+    fetch(url)
       .then(async r => {
         if (!r.ok) {
           const body = await r.json().catch(() => ({}))
@@ -79,24 +81,26 @@ export default function Inbox() {
           </div>
         </div>
 
-        {!apiKey ? (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-            <h2 className="text-sm font-semibold text-gray-700 mb-2">Enter your API Key</h2>
-            <p className="text-xs text-gray-500 mb-4">Paste the API key from the app that registered your device to view your notifications.</p>
-            <form onSubmit={handleSubmit} className="flex gap-3">
-              <input
-                type="text"
-                value={inputKey}
-                onChange={e => setInputKey(e.target.value)}
-                placeholder="pk_live_..."
-                className="flex-1 px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <button type="submit" disabled={!inputKey.trim()} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 text-sm transition-all disabled:opacity-50">
-                View
-              </button>
-            </form>
-          </div>
-        ) : loading ? (
+        {/* Always show the API key form */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-2">Enter your API Key</h2>
+          <p className="text-xs text-gray-500 mb-4">Paste the API key from the app that registered your device to view your notifications.</p>
+          <form onSubmit={handleSubmit} className="flex gap-3">
+            <input
+              type="text"
+              value={inputKey}
+              onChange={e => setInputKey(e.target.value)}
+              placeholder="pk_live_..."
+              className="flex-1 px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button type="submit" disabled={!inputKey.trim()} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 text-sm transition-all disabled:opacity-50">
+              {loading ? 'Loading...' : 'View'}
+            </button>
+          </form>
+        </div>
+
+        {/* Content area */}
+        {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
@@ -107,25 +111,26 @@ export default function Inbox() {
             ))}
           </div>
         ) : error ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+          <div className="bg-white rounded-xl border border-red-200 p-8 text-center">
+            <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
               </svg>
             </div>
-            <p className="text-gray-500 font-medium text-sm">{error}</p>
+            <p className="text-red-600 font-medium text-sm">{error}</p>
+            <p className="text-gray-400 text-xs mt-2">Check the key and try again.</p>
           </div>
-        ) : notifications.length === 0 ? (
+        ) : notifications.length === 0 && apiKey ? (
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
             <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 018 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
               </svg>
             </div>
             <p className="text-gray-500 font-medium text-sm">No notifications yet</p>
             <p className="text-gray-400 text-xs mt-1">Notifications you receive will appear here.</p>
           </div>
-        ) : (
+        ) : notifications.length > 0 ? (
           <div className="space-y-2">
             {notifications.map(n => (
               <div key={n.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -144,7 +149,7 @@ export default function Inbox() {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   )
