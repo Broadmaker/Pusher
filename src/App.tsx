@@ -10,6 +10,7 @@ import AppSettings from './pages/AppSettings'
 import Devices from './pages/Devices'
 import SendNotification from './pages/SendNotification'
 import NotificationHistory from './pages/NotificationHistory'
+import Inbox from './pages/Inbox'
 import './index.css'
 
 function App() {
@@ -21,6 +22,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/inbox" element={<Inbox />} />
+          <Route path="/inbox/:apiKey" element={<Inbox />} />
           <Route path="/" element={<Layout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />

@@ -37,10 +37,11 @@ self.addEventListener('notificationclick', function (event) {
   event.notification.close()
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      const inboxUrl = self.location.origin + '/inbox'
       for (const client of clientList) {
-        if (client.url === '/' && 'focus' in client) return client.focus()
+        if (client.url.startsWith(self.location.origin + '/inbox') && 'focus' in client) return client.focus()
       }
-      if (clients.openWindow) clients.openWindow('/')
+      if (clients.openWindow) clients.openWindow(inboxUrl)
     })
   )
 })

@@ -7,6 +7,9 @@ class PushSDK {
     this.apiKey = apiKey
     this.apiUrl = options?.apiUrl || '/api'
     this.vapidKey = options?.vapidPublicKey || ''
+    localStorage.setItem('pusher_api_key', apiKey)
+    localStorage.setItem('pusher_api_url', this.apiUrl)
+    localStorage.setItem('pusher_vapid_key', this.vapidKey)
   }
 
   async init() {

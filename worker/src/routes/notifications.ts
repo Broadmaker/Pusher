@@ -52,6 +52,17 @@ router.post('/', async (c) => {
   }
 })
 
+router.get('/public/:apiKey', async (c) => {
+  try {
+    const app = await store.findAppByApiKey(c.env.DB, c.req.param('apiKey'))
+    if (!app) return c.json({ error: 'Invalid API key' }, 401)
+    const notifications = await store.findNotificationsByApp(c.env.DB, app.id)
+    return c.json({ notifications: notifications.slice(0, 50) })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 400)
+  }
+})
+
 router.get('/latest', async (c) => {
   const result: any = await c.env.DB.prepare('SELECT id, app_id, title, body, status, created_at, sent_count, failed_count, total_devices FROM notifications ORDER BY created_at DESC LIMIT 1').first()
   const map = (r: any) => r ? { id: r.id, appId: r.appId || r.app_id, title: r.title, body: r.body, status: r.status, createdAt: r.createdAt || r.created_at, sentCount: r.sentCount ?? r.sent_count, failedCount: r.failedCount ?? r.failed_count, totalDevices: r.totalDevices ?? r.total_devices } : null
