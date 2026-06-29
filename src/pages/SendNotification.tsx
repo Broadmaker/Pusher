@@ -139,27 +139,77 @@ export default function SendNotification() {
         <NotificationPreview title={title} body={body} />
       </div>
 
+      {/* Templates - Mobile always visible, Desktop toggle */}
+      {appTemplates.length > 0 && (
+        <div className="mb-6">
+          <button
+            onClick={() => setShowTemplates(!showTemplates)}
+            className="flex items-center justify-between w-full lg:hidden bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.75V16.5L12 14.25 7.5 16.5V3.75m9 0H18A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6A2.25 2.25 0 016 3.75h1.5m9 0h-9" />
+              </svg>
+              <span className="text-sm font-semibold text-gray-700">Templates</span>
+              <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{appTemplates.length}</span>
+            </div>
+            <svg className={`w-5 h-5 text-gray-400 transition-transform ${showTemplates ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      <div className={`space-y-2 mb-6 lg:hidden ${showTemplates || appTemplates.length === 0 ? '' : 'hidden'}`}>
+        {appTemplates.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 text-center">
+            <p className="text-xs text-gray-400">No templates yet. Save one from the form.</p>
+          </div>
+        ) : (
+          appTemplates.map(t => (
+            <div key={t.id} onClick={() => applyTemplate(t)} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden active:scale-[0.99] transition-transform">
+              <div className="flex items-center p-4">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-gray-900">{t.name}</div>
+                  <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">{t.title}{t.body ? ` — ${t.body}` : ''}</div>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDeleteTarget(t) }}
+                  className="ml-3 p-2.5 rounded-xl bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 active:scale-90 transition-all shrink-0"
+                  aria-label="Delete template"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-5">
         {/* Templates sidebar - Desktop */}
-        <div className={`hidden lg:block lg:col-span-2 ${showTemplates ? '' : 'lg:hidden'}`}>
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 lg:sticky lg:top-24">
-            <div className="flex items-center justify-between mb-3">
+        <div className={`hidden ${showTemplates ? 'lg:block' : 'lg:hidden'} lg:col-span-2`}>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 lg:sticky lg:top-24">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-gray-700">Templates</h3>
-              <span className="text-xs text-gray-400">{appTemplates.length}</span>
+              <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{appTemplates.length}</span>
             </div>
             {appTemplates.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-6">No templates yet. Save one from the form.</p>
             ) : (
               <div className="space-y-2">
                 {appTemplates.map(t => (
-                  <div key={t.id} className="group flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 hover:bg-blue-50/50 transition-colors cursor-pointer" onClick={() => applyTemplate(t)}>
+                  <div key={t.id} onClick={() => applyTemplate(t)} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-3 hover:bg-blue-50/50 transition-colors cursor-pointer group">
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-800 truncate">{t.name}</div>
-                      <div className="text-xs text-gray-400 truncate">{t.title} &mdash; {t.body}</div>
+                      <div className="text-sm font-semibold text-gray-800 truncate">{t.name}</div>
+                      <div className="text-xs text-gray-400 truncate">{t.title}{t.body ? ` — ${t.body}` : ''}</div>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteTarget(t) }}
-                      className="shrink-0 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                      className="shrink-0 p-1.5 rounded-lg text-gray-300 hover:bg-red-50 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                      aria-label="Delete template"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -173,7 +223,7 @@ export default function SendNotification() {
         </div>
 
         {/* Form */}
-        <div className="lg:col-span-3 lg:col-start-1">
+        <div className={`${showTemplates ? 'lg:col-span-3' : 'lg:col-span-5'}`}>
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Title */}
@@ -222,18 +272,6 @@ export default function SendNotification() {
                   </svg>
                   {showSave ? 'Cancel' : 'Save as Template'}
                 </button>
-                {appTemplates.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowTemplates(!showTemplates)}
-                    className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors lg:hidden"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-                    </svg>
-                    Templates ({appTemplates.length})
-                  </button>
-                )}
               </div>
 
               {showSave && (
@@ -272,36 +310,6 @@ export default function SendNotification() {
               </div>
             </form>
           </div>
-
-          {/* Mobile templates section */}
-          {showTemplates && appTemplates.length > 0 && (
-            <div className="mt-4 lg:hidden">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-700">Templates</h3>
-                  <span className="text-xs text-gray-400">{appTemplates.length}</span>
-                </div>
-                <div className="space-y-2">
-                  {appTemplates.map(t => (
-                    <div key={t.id} className="group flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 hover:bg-blue-50/50 transition-colors cursor-pointer" onClick={() => applyTemplate(t)}>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-800 truncate">{t.name}</div>
-                        <div className="text-xs text-gray-400 truncate">{t.title} &mdash; {t.body}</div>
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(t) }}
-                        className="shrink-0 text-gray-300 hover:text-red-500 transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
