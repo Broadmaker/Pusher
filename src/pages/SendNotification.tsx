@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useApi } from '../data/api-context'
 import { useToast } from '../components/Toast'
 import { Button, Input, Textarea, ConfirmDialog } from '../components/ui'
@@ -27,7 +27,6 @@ function NotificationPreview({ title, body }: { title: string; body: string }) {
 
 export default function SendNotification() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const { apps, devices, templates, sendNotification, addTemplate, deleteTemplate } = useApi()
   const { addToast } = useToast()
   const app = apps.find(a => a.id === id)
@@ -97,11 +96,6 @@ export default function SendNotification() {
     <div className="pb-24 sm:pb-8">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="p-1.5 -ml-1.5 rounded-lg hover:bg-gray-100 transition-colors lg:hidden">
-          <svg className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
-        </button>
         <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0">
           {app.name[0].toUpperCase()}
         </div>
