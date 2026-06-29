@@ -163,6 +163,9 @@ export function ApiProvider({ children }: { children: ReactNode }) {
       body: body || '(no message)',
       status: 'sent',
       createdAt: res.notification.createdAt,
+      sentCount: res.sent,
+      failedCount: res.failed,
+      totalDevices: res.totalDevices,
     }
     setNotifications(prev => ({ ...prev, [appId]: [notification, ...(prev[appId] || [])] }))
   }, [apps])

@@ -3,6 +3,20 @@ import { useParams } from 'react-router-dom'
 import { useApi } from '../data/api-context'
 import { Badge, Table, Skeleton } from '../components/ui'
 
+function formatDate(raw: string): string {
+  if (!raw) return '—'
+  const d = new Date(raw)
+  if (isNaN(d.getTime())) return raw
+  const now = new Date()
+  const diff = now.getTime() - d.getTime()
+  const isToday = diff < 86400000 && d.getDate() === now.getDate()
+  const datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const timePart = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  if (isToday) return `Today at ${timePart}`
+  if (diff < 86400000 * 2) return `Yesterday at ${timePart}`
+  return `${datePart} at ${timePart}`
+}
+
 export default function NotificationHistory() {
   const { id } = useParams<{ id: string }>()
   const [loading, setLoading] = useState(true)
@@ -57,6 +71,20 @@ export default function NotificationHistory() {
       render: (n: any) => <span className="text-gray-500 max-w-xs truncate block">{n.body}</span>,
     },
     {
+      key: 'devices',
+      header: 'Devices',
+      render: (n: any) => {
+        if (n.totalDevices == null) return <span className="text-gray-400 text-sm">—</span>
+        const allOk = n.sentCount === n.totalDevices
+        return (
+          <span className={`text-sm font-medium ${allOk ? 'text-emerald-600' : n.failedCount ? 'text-amber-600' : 'text-gray-500'}`}>
+            {n.sentCount}/{n.totalDevices}
+            {n.failedCount ? <span className="text-red-500 ml-1">({n.failedCount} failed)</span> : null}
+          </span>
+        )
+      },
+    },
+    {
       key: 'status',
       header: 'Status',
       render: (n: any) => <Badge variant="success" dot>{n.status}</Badge>,
@@ -64,7 +92,7 @@ export default function NotificationHistory() {
     {
       key: 'createdAt',
       header: 'Sent',
-      render: (n: any) => <span className="text-gray-500">{n.createdAt}</span>,
+      render: (n: any) => <span className="text-gray-500 text-sm whitespace-nowrap">{formatDate(n.createdAt)}</span>,
     },
   ]
 
@@ -127,7 +155,17 @@ export default function NotificationHistory() {
                     <Badge variant="success" dot>{n.status}</Badge>
                   </div>
                   <p className="text-xs text-gray-500 mb-1">{n.body}</p>
-                  <p className="text-xs text-gray-400">{n.createdAt}</p>
+                  <div className="flex items-center gap-3 text-xs text-gray-400 mt-2">
+                    <span>{formatDate(n.createdAt)}</span>
+                    {n.totalDevices != null && (
+                      <>
+                        <span className="text-gray-300">|</span>
+                        <span className={n.sentCount === n.totalDevices ? 'text-emerald-600 font-medium' : 'text-amber-600 font-medium'}>
+                          {n.sentCount}/{n.totalDevices} devices
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

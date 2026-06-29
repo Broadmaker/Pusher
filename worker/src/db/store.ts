@@ -39,6 +39,9 @@ export interface Notification {
   body: string
   status: string
   createdAt: string
+  sentCount?: number
+  failedCount?: number
+  totalDevices?: number
 }
 
 // Users
@@ -125,8 +128,8 @@ export async function registerDevice(db: D1Database, appId: string, token: strin
 
 const mapDevice = (r: any): Device => ({ id: r.id, appId: r.appId || r.app_id, token: r.token, platform: r.platform, createdAt: r.createdAt || r.created_at })
 const mapDevices = (results: any[]): Device[] => results.map(r => ({ id: r.id, appId: r.appId || r.app_id, token: r.token, platform: r.platform, createdAt: r.createdAt || r.created_at }))
-const mapNotification = (r: any): Notification => ({ id: r.id, appId: r.appId || r.app_id, title: r.title, body: r.body, status: r.status, createdAt: r.createdAt || r.created_at })
-const mapNotifications = (results: any[]): Notification[] => results.map(r => ({ id: r.id, appId: r.appId || r.app_id, title: r.title, body: r.body, status: r.status, createdAt: r.createdAt || r.created_at }))
+const mapNotification = (r: any): Notification => ({ id: r.id, appId: r.appId || r.app_id, title: r.title, body: r.body, status: r.status, createdAt: r.createdAt || r.created_at, sentCount: r.sentCount ?? r.sent_count, failedCount: r.failedCount ?? r.failed_count, totalDevices: r.totalDevices ?? r.total_devices })
+const mapNotifications = (results: any[]): Notification[] => results.map(r => ({ id: r.id, appId: r.appId || r.app_id, title: r.title, body: r.body, status: r.status, createdAt: r.createdAt || r.created_at, sentCount: r.sentCount ?? r.sent_count, failedCount: r.failedCount ?? r.failed_count, totalDevices: r.totalDevices ?? r.total_devices }))
 
 export async function findDevicesByApp(db: D1Database, appId: string): Promise<Device[]> {
   const res = await db.prepare('SELECT id, app_id, token, platform, created_at FROM devices WHERE app_id = ? ORDER BY created_at DESC')
@@ -139,16 +142,16 @@ export async function deleteDeviceById(db: D1Database, id: string): Promise<void
 }
 
 // Notifications
-export async function createNotification(db: D1Database, appId: string, title: string, body: string): Promise<Notification> {
+export async function createNotification(db: D1Database, appId: string, title: string, body: string, sentCount?: number, failedCount?: number, totalDevices?: number): Promise<Notification> {
   const id = crypto.randomUUID()
   const createdAt = new Date().toISOString()
-  await db.prepare('INSERT INTO notifications (id, app_id, title, body, status, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(id, appId, title, body || '(no message)', 'sent', createdAt).run()
-  return { id, appId, title, body: body || '(no message)', status: 'sent', createdAt }
+  await db.prepare('INSERT INTO notifications (id, app_id, title, body, status, created_at, sent_count, failed_count, total_devices) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(id, appId, title, body || '(no message)', 'sent', createdAt, sentCount || 0, failedCount || 0, totalDevices || 0).run()
+  return { id, appId, title, body: body || '(no message)', status: 'sent', createdAt, sentCount, failedCount, totalDevices }
 }
 
 export async function findNotificationsByApp(db: D1Database, appId: string): Promise<Notification[]> {
-  const res = await db.prepare('SELECT id, app_id, title, body, status, created_at FROM notifications WHERE app_id = ? ORDER BY created_at DESC')
+  const res = await db.prepare('SELECT id, app_id, title, body, status, created_at, sent_count, failed_count, total_devices FROM notifications WHERE app_id = ? ORDER BY created_at DESC')
     .bind(appId).all()
   return mapNotifications(res.results as any[])
 }

@@ -13,7 +13,6 @@ router.post('/', async (c) => {
     if (!app) return c.json({ error: 'Invalid API key' }, 401)
 
     const devices = await store.findDevicesByApp(c.env.DB, app.id)
-    const notification = await store.createNotification(c.env.DB, app.id, title.trim(), body || '')
 
     const results = await Promise.allSettled(
       devices.map(d => sendPush(d.token, title.trim(), body || '', c.env))
@@ -26,6 +25,8 @@ router.post('/', async (c) => {
       .map(r => ({ status: (r as any).value?.status, error: (r as any).value?.error || null }))
       .filter(r => !r.status || r.status >= 400)
       .slice(0, 5)
+
+    const notification = await store.createNotification(c.env.DB, app.id, title.trim(), body || '', sent, failed, devices.length)
 
     return c.json({
       notification,
@@ -40,8 +41,9 @@ router.post('/', async (c) => {
 })
 
 router.get('/latest', async (c) => {
-  const result: any = await c.env.DB.prepare('SELECT id, app_id, title, body, status, created_at FROM notifications ORDER BY created_at DESC LIMIT 1').first()
-  const n = result ? { id: result.id, appId: result.appId || result.app_id, title: result.title, body: result.body, status: result.status, createdAt: result.createdAt || result.created_at } : null
+  const result: any = await c.env.DB.prepare('SELECT id, app_id, title, body, status, created_at, sent_count, failed_count, total_devices FROM notifications ORDER BY created_at DESC LIMIT 1').first()
+  const map = (r: any) => r ? { id: r.id, appId: r.appId || r.app_id, title: r.title, body: r.body, status: r.status, createdAt: r.createdAt || r.created_at, sentCount: r.sentCount ?? r.sent_count, failedCount: r.failedCount ?? r.failed_count, totalDevices: r.totalDevices ?? r.total_devices } : null
+  const n = map(result)
   return c.json({ notification: n })
 })
 

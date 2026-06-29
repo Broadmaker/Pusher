@@ -23,6 +23,9 @@ export interface Notification {
   body: string
   status: string
   createdAt: string
+  sentCount?: number
+  failedCount?: number
+  totalDevices?: number
 }
 
 export interface Template {
@@ -162,7 +165,9 @@ export function MockProvider({ children }: { children: ReactNode }) {
       title,
       body: body || '(no message)',
       status: 'sent',
-      createdAt: new Date().toISOString().slice(0, 10),
+      createdAt: new Date().toISOString(),
+      sentCount: 1,
+      totalDevices: 1,
     }
     setNotifications(prev => ({
       ...prev,

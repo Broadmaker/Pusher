@@ -12,3 +12,6 @@ tag = "v1"
 
 [[migrations]]
 tag = "v2"
+
+[[migrations]]
+tag = "v3"
